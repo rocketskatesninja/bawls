@@ -1,0 +1,25 @@
+# {{MANAGED}}
+[Unit]
+Description=Bawls scheduler — detection, enrichment, pruning, geoip refresh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{WEB_USER}}
+Group={{WEB_GROUP}}
+WorkingDirectory={{INSTALL_DIR}}
+ExecStart={{PHP_BIN}} {{INSTALL_DIR}}/artisan schedule:work
+Restart=always
+RestartSec=10
+
+# It writes only the database, storage (logs, the ban feed, GeoIP files) and
+# Laravel's bootstrap cache. It needs the internet for enrichment lookups.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{INSTALL_DIR}}/storage {{INSTALL_DIR}}/database {{INSTALL_DIR}}/bootstrap/cache
+
+[Install]
+WantedBy=multi-user.target

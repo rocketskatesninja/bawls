@@ -1,0 +1,7 @@
+# /etc/fail2ban/fail2ban.d/bawls.local
+#
+# Keep bans in fail2ban's database past the stock 1 day, so the bawls jail's
+# 7-day bans are restored after a fail2ban restart or reboot.
+
+[Definition]
+dbpurgeage = 8d

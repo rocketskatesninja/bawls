@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/*
+ | Bawls runs on a wall display as much as a laptop: high contrast,
+ | phosphor-on-black, monospace for anything that is data. The palette is
+ | deliberately narrow — green means normal, amber means suspicious,
+ | red means act now, and nothing else competes for attention.
+ */
+@theme {
+    --color-void: #070b09;
+    --color-panel: #0d1411;
+    --color-panel-lit: #131c18;
+    --color-grid: #31463b;
+    --color-edge: #42594c;
+
+    --color-phosphor: #39ff8b;
+    --color-phosphor-dim: #1f8f4e;
+    --color-amber: #ff9500;
+    --color-alarm: #ff2d55;
+    --color-signal: #4dd8ff;
+
+    --color-ink: #dbeae2;
+    --color-ink-dim: #9bb1a5;
+    --color-ink-faint: #7f958a;
+
+    --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html, body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+}
+
+/* Faint scanlines + vignette. Purely atmospheric; pointer-events none so it
+   never eats a click. */
+.crt::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 0, 0, 0.22) 3px,
+        rgba(0, 0, 0, 0.22) 4px
+    );
+}
+
+.crt::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 51;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+}
+
+.glow { text-shadow: 0 0 6px currentColor; }
+.glow-box { box-shadow: 0 0 0 1px var(--color-edge), 0 0 18px -6px var(--color-phosphor-dim); }
+
+/* Thin, dark, always-visible scrollbars — a monitoring wall should never
+   hide that a list continues. */
+* { scrollbar-width: thin; scrollbar-color: var(--color-edge) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--color-edge); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes pulse-alarm {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.pulse { animation: pulse-alarm 1.4s ease-in-out infinite; }

@@ -1,0 +1,46 @@
+# {{MANAGED}}
+#
+# The bawls console. A private hostname that only resolves through hosts files,
+# a self-signed certificate (so the name never lands in Certificate
+# Transparency logs), and an IP allowlist. The secret sign-in path applies on
+# top. 127.0.0.1 stays allowed so an SSH tunnel always works.
+#
+# Never a default_server: the default answers anyone who connects to the bare
+# IP, and this certificate names the console's private hostname.
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {{CONSOLE_HOST}};
+    server_tokens off;
+
+    ssl_certificate     {{CONSOLE_CERT}};
+    ssl_certificate_key {{CONSOLE_KEY}};
+
+{{CONSOLE_ALLOW_RULES}}
+
+    root {{INSTALL_DIR}}/public;
+    index index.php;
+    charset utf-8;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # Only Laravel's front controller runs; any other .php is a 404.
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:{{PHP_FPM_SOCK}};
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+    location ~ \.php$ { return 404; }
+    location ~ /\.(?!well-known) { deny all; }
+    location ~ \.(sqlite|sqlite-wal|sqlite-shm|env|mmdb)$ { deny all; }
+
+    access_log /var/log/nginx/bawls_console_access.log;
+    error_log  /var/log/nginx/bawls_console_error.log;
+}
