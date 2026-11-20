@@ -1,0 +1,270 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Alert;
+use App\Models\Event;
+use App\Models\IpIntel;
+use App\Models\Sensor;
+use App\Services\DisplayFilter;
+use App\Services\DisplayFilterError;
+use App\Services\Settings;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class DashboardController extends Controller
+{
+    public function __construct(private Settings $settings) {}
+
+    /** The stream shows the newest 200 matches; Load older adds 200 at a time, up to 1,000. */
+    private const STREAM_STEP = 200;
+
+    private const STREAM_MAX = 1000;
+
+    /** The events-per-hour chart's ranges, in hours. */
+    private const RANGES = ['24h' => 24, '7d' => 168];
+
+    public function overview(Request $request): Response
+    {
+        $limit = (int) round($request->integer('limit', self::STREAM_STEP) / self::STREAM_STEP) * self::STREAM_STEP;
+        $range = array_key_exists($request->string('range')->toString(), self::RANGES) ? $request->string('range')->toString() : '24h';
+
+        return Inertia::render('Overview', [
+            'stats' => $this->stats(),
+            'range' => $range,
+            'traffic' => $this->trafficByHour(self::RANGES[$range]),
+            'stream' => $this->stream(
+                trim($request->string('f')->toString()),
+                max(self::STREAM_STEP, min(self::STREAM_MAX, $limit)),
+            ),
+            'openAlerts' => $this->openAlerts(),
+            'topSources' => $this->topSources(),
+            'sensors' => $this->sensors(),
+            'aggregates' => $this->aggregates(),
+        ]);
+    }
+
+    /** The filter bar's as-you-type check: does this filter parse? */
+    public function checkFilter(Request $request): JsonResponse
+    {
+        try {
+            DisplayFilter::parse($request->string('f')->toString());
+        } catch (DisplayFilterError $error) {
+            return response()->json(['ok' => false, 'error' => ['message' => $error->getMessage(), 'at' => $error->position]]);
+        }
+
+        return response()->json(['ok' => true, 'error' => null]);
+    }
+
+    /**
+     * The 24h figures must agree with the traffic chart beside them, so both
+     * measure from the same hour boundary rather than a rolling 24 hours.
+     */
+    private function windowStart(): Carbon
+    {
+        return now()->subHours(23)->startOfHour();
+    }
+
+    /**
+     * @return array<string, int|string|null>
+     */
+    private function stats(): array
+    {
+        $dayAgo = $this->windowStart();
+
+        return [
+            'events_24h' => Event::where('occurred_at', '>=', $dayAgo)->count(),
+            'events_total' => Event::count(),
+            'alerts_open' => Alert::where('status', 'open')->count(),
+            'alerts_critical' => Alert::where('status', 'open')->where('severity', '>=', 4)->count(),
+            'sensors_online' => Sensor::where('last_seen_at', '>=', now()->subMinutes(5))->count(),
+            'sensors_total' => Sensor::count(),
+            'blocked_24h' => Event::where('occurred_at', '>=', $dayAgo)->where('action', 'blocked')->count(),
+            'decoy_24h' => Event::where('occurred_at', '>=', $dayAgo)->where('source', 'honeypot_http')->count(),
+        ];
+    }
+
+    /**
+     * Events bucketed by hour over the chart's range, zero-filled so the chart
+     * shows quiet hours as gaps rather than collapsing them. Buckets are UTC
+     * hours; each is labelled with its start in the display zone, so a
+     * half-hour zone reads 07:30, 08:30, ... `from` and `to` are the bucket's
+     * bounds in the display zone, as the stream filter's `time` reads them,
+     * so clicking a bar can filter the stream to exactly that hour. Over 7
+     * days the label carries the weekday too.
+     *
+     * @return array<int, array{hour: string, from: string, to: string, count: int}>
+     */
+    private function trafficByHour(int $hours): array
+    {
+        $counts = Event::where('occurred_at', '>=', now()->subHours($hours - 1)->startOfHour())
+            ->selectRaw("strftime('%Y-%m-%dT%H', occurred_at) AS bucket, COUNT(*) AS count")
+            ->groupBy('bucket')
+            ->pluck('count', 'bucket');
+
+        return collect(range($hours - 1, 0))
+            ->map(function (int $hoursAgo) use ($counts, $hours): array {
+                $bucket = now()->subHours($hoursAgo)->format('Y-m-d\TH');
+                $utc = Carbon::createFromFormat('!Y-m-d\TH', $bucket, 'UTC');
+                $start = $this->settings->local($utc);
+
+                return [
+                    'hour' => $start->format($hours > 24 ? 'D H:i' : 'H:i'),
+                    'from' => $start->format('Y-m-d H:i'),
+                    'to' => $this->settings->local($utc->copy()->addHour())->format('Y-m-d H:i'),
+                    'count' => (int) ($counts[$bucket] ?? 0),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The event stream under its display filter (App\Services\DisplayFilter).
+     * The stats and chart above it deliberately ignore the filter, so the
+     * totals stay a fixed reference point while you narrow the list. A filter
+     * that doesn't parse comes back as `error`, with no rows; the page keeps
+     * showing its last good rows.
+     *
+     * @return array{filter: string, rows: list<array<string, mixed>>, matched: int, limit: int, error: array{message: string, at: int}|null}
+     */
+    private function stream(string $text, int $limit): array
+    {
+        $stream = ['filter' => $text, 'rows' => [], 'matched' => 0, 'limit' => $limit, 'error' => null];
+        try {
+            $filter = DisplayFilter::parse($text);
+        } catch (DisplayFilterError $error) {
+            return [...$stream, 'error' => ['message' => $error->getMessage(), 'at' => $error->position]];
+        }
+
+        $query = Event::query();
+        $filter?->apply($query, $this->settings->timezone());
+
+        return [
+            ...$stream,
+            'matched' => (clone $query)->count(),
+            'rows' => $this->rows($query->latest('occurred_at')->latest('id')->limit($limit)),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function rows(Builder $query): array
+    {
+        return $query
+            ->get(['id', 'occurred_at', 'source', 'proto', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'iface', 'action', 'process', 'raw'])
+            ->map(fn (Event $event): array => [
+                'id' => $event->id,
+                'at' => $this->settings->local($event->occurred_at)->format('H:i:s'),
+                'src' => $event->src_ip.($event->src_port ? ':'.$event->src_port : ''),
+                'src_ip' => $event->src_ip,
+                'dst' => $event->dst_ip.($event->dst_port ? ':'.$event->dst_port : ''),
+                'proto' => $event->protocolLabel(),
+                'info' => $event->summary(),
+                'kind' => $event->kind(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function openAlerts(): array
+    {
+        return Alert::where('status', 'open')
+            ->orderByDesc('severity')
+            ->orderByDesc('last_seen_at')
+            ->limit(25)
+            ->get()
+            ->map(fn (Alert $alert): array => [
+                'id' => $alert->id,
+                'rule' => $alert->rule,
+                'severity' => $alert->severity,
+                'title' => $alert->title,
+                'src_ip' => $alert->src_ip,
+                'event_count' => $alert->event_count,
+                'last_seen' => $alert->last_seen_at?->diffForHumans(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function topSources(): array
+    {
+        return Event::where('occurred_at', '>=', $this->windowStart())
+            ->select('src_ip', DB::raw('COUNT(*) AS hits'), DB::raw('COUNT(DISTINCT dst_port) AS ports'))
+            ->groupBy('src_ip')
+            ->orderByDesc('hits')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row): array => [
+                'ip' => $row->src_ip,
+                'hits' => (int) $row->hits,
+                'ports' => (int) $row->ports,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function sensors(): array
+    {
+        return Sensor::orderBy('name')
+            ->get()
+            ->map(fn (Sensor $sensor): array => [
+                'name' => $sensor->name,
+                'online' => $sensor->last_seen_at?->gt(now()->subMinutes(5)) ?? false,
+                'last_seen' => $sensor->last_seen_at?->diffForHumans(),
+                'events' => (int) $sensor->events_received,
+            ])
+            ->all();
+    }
+
+    /**
+     * What the decoy is drawing: most-probed paths, signature mix, and where
+     * the sources sit — over the same 24h window as the stats.
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function aggregates(): array
+    {
+        $since = $this->windowStart();
+
+        // Flood-cap summaries carry a placeholder path, "(suppressed flood)",
+        // not a URL anyone requested, so they're left out of the path ranking.
+        $paths = Event::query()
+            ->where('occurred_at', '>=', $since)
+            ->where('source', 'honeypot_http')
+            ->whereRaw('COALESCE(json_extract(raw, \'$.signature\'), \'\') <> ?', ['flood'])
+            ->selectRaw('json_extract(raw, \'$.path\') AS path, COUNT(*) AS hits')
+            ->groupBy('path')->orderByDesc('hits')->limit(8)->get()
+            ->map(fn ($r): array => ['path' => $r->path, 'hits' => (int) $r->hits])->all();
+
+        $signatures = Event::query()
+            ->where('occurred_at', '>=', $since)
+            ->where('source', 'honeypot_http')
+            // A page view the decoy left unlabelled counts as benign too, so the
+            // two can't show up as two "benign" rows.
+            ->selectRaw('COALESCE(json_extract(raw, \'$.signature\'), \'benign\') AS sig, COUNT(*) AS hits')
+            ->groupBy('sig')->orderByDesc('hits')->get()
+            ->map(fn ($r): array => ['signature' => $r->sig, 'hits' => (int) $r->hits])->all();
+
+        $countries = IpIntel::query()
+            ->whereNotNull('country')
+            ->whereIn('ip', Event::select('src_ip')->where('occurred_at', '>=', $since))
+            ->selectRaw('country, COUNT(*) AS n')
+            ->groupBy('country')->orderByDesc('n')->limit(8)->get()
+            ->map(fn ($r): array => ['country' => $r->country, 'n' => (int) $r->n])->all();
+
+        return ['paths' => $paths, 'signatures' => $signatures, 'countries' => $countries];
+    }
+}

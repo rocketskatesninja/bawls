@@ -1,0 +1,34 @@
+# {{MANAGED}}
+#
+# The catch-all: requests that match no named site (the bare IP, a junk Host
+# header, a scanner that never asked for a hostname) get the decoy. They're
+# recorded, and banned on an exploit attempt, before they find a real site by
+# name. Named sites are unaffected.
+#
+# The file name starts with 000-bawls so Apache loads it first, which is what
+# makes it the default. ProxyRequests stays at its default Off: this is a
+# reverse proxy to one local port, never a forward proxy.
+<VirtualHost *:80>
+    ServerName _default_
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:{{DECOY_PORT}}/
+    ProxyPassReverse / http://127.0.0.1:{{DECOY_PORT}}/
+    ErrorLog  ${APACHE_LOG_DIR}/bawls_default_error.log
+    CustomLog ${APACHE_LOG_DIR}/bawls_default_access.log combined
+</VirtualHost>
+
+# HTTPS catch-all with a generic self-signed certificate (CN=localhost), so a
+# bare-IP TLS handshake reveals nothing about this server's other names.
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName _default_
+    SSLEngine on
+    SSLCertificateFile    {{DEFAULT_CERT}}
+    SSLCertificateKeyFile {{DEFAULT_KEY}}
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:{{DECOY_PORT}}/
+    ProxyPassReverse / http://127.0.0.1:{{DECOY_PORT}}/
+    ErrorLog  ${APACHE_LOG_DIR}/bawls_default_error.log
+    CustomLog ${APACHE_LOG_DIR}/bawls_default_access.log combined
+</VirtualHost>
+</IfModule>

@@ -1,0 +1,36 @@
+{
+    "name": "Bawls Inc.",
+    "description": "Default theme: an absurd corporate parody (Global Leaders in Spherical Solutions).",
+    "pages": {
+        "/": "index.html",
+        "/index.html": "index.html",
+        "/products": "products.html",
+        "/careers": "careers.html",
+        "/team": "team.html",
+        "/press": "press.html",
+        "/investors": "investors.html",
+        "/contact": "contact.html",
+        "/about": "about.html",
+        "/solutions": "solutions.html",
+        "/pricing": "pricing.html",
+        "/support": "support.html",
+        "/status": "status.html",
+        "/privacy": "privacy.html",
+        "/terms": "terms.html",
+        "/products/ball": "product-ball.html",
+        "/products/ball-pro": "product-ball-pro.html",
+        "/products/ball-lite": "product-ball-lite.html",
+        "/press/ball-pro-launch": "news-ball-pro.html",
+        "/press/series-b": "news-series-b.html",
+        "/press/roundness-report": "news-roundness.html",
+        "/robots.txt": "robots.txt",
+        "/sitemap.xml": "sitemap.xml",
+        "/favicon.ico": "favicon.svg",
+        "/favicon.svg": "favicon.svg"
+    },
+    "flaky": [
+        "/investors"
+    ],
+    "not_found": "404.html",
+    "unavailable": "503.html"
+}

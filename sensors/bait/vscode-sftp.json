@@ -1,0 +1,2 @@
+{ "name": "Bawls Prod", "host": "deploy.bawls.example", "protocol": "sftp",
+  "port": 22, "username": "deploy", "password": "Spher3Deploy!", "remotePath": "/var/www/bawls" }
