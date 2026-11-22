@@ -1,0 +1,11 @@
+# {{MANAGED}}
+[Unit]
+Description=Refresh the console's copy of fail2ban's bawls bans every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

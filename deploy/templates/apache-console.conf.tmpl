@@ -1,0 +1,37 @@
+# {{MANAGED}}
+#
+# The bawls console. A private hostname that only resolves through hosts files,
+# a self-signed certificate (so the name never lands in Certificate
+# Transparency logs), and an IP allowlist. The secret sign-in path applies on
+# top. 127.0.0.1 stays allowed so an SSH tunnel always works.
+#
+# The file name starts with zz- so this is never Apache's default HTTPS site:
+# the default answers anyone who connects to the bare IP, and this
+# certificate names the console's private hostname.
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName {{CONSOLE_HOST}}
+    DocumentRoot {{INSTALL_DIR}}/public
+    SSLEngine on
+    SSLCertificateFile {{CONSOLE_CERT}}
+    SSLCertificateKeyFile {{CONSOLE_KEY}}
+    <Directory {{INSTALL_DIR}}/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+{{CONSOLE_REQUIRE}}
+    </Directory>
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:{{PHP_FPM_SOCK}}|fcgi://localhost"
+    </FilesMatch>
+    <FilesMatch "\.(sqlite|sqlite-wal|sqlite-shm|env|mmdb)$">
+        Require all denied
+    </FilesMatch>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # As nginx does: never name the PHP version, whatever php.ini says.
+    Header always unset X-Powered-By
+    ErrorLog ${APACHE_LOG_DIR}/bawls_console_error.log
+    CustomLog ${APACHE_LOG_DIR}/bawls_console_access.log combined
+</VirtualHost>
+</IfModule>

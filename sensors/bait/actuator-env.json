@@ -1,0 +1,5 @@
+{ "activeProfiles": ["production"], "propertySources": [
+  { "name": "systemProperties", "properties": { "java.version": { "value": "11.0.20" } } },
+  { "name": "applicationConfig", "properties": {
+    "spring.datasource.username": { "value": "bawls" },
+    "spring.datasource.password": { "value": "******" } } } ] }

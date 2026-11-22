@@ -1,0 +1,39 @@
+# {{MANAGED}}
+[Unit]
+Description=Bawls ban list — copies fail2ban's bawls bans for the console to show
+After=fail2ban.service
+
+# fail2ban answers only root (its socket is root-only), so this runs as root,
+# but it only reads: it lists the jail's bans into a file the web group can
+# read, with the server's UTC offset first (fail2ban prints local times).
+# The console never talks to fail2ban itself.
+[Service]
+Type=oneshot
+Group={{WEB_GROUP}}
+UMask=0027
+StateDirectory=bawls/bans
+StateDirectoryMode=0750
+ExecStart=/bin/sh -c 'f={{BAN_EXPORT}}; { echo "# utc-offset $$(date +%%z)"; fail2ban-client get bawls banip --with-time; } > "$$f.new" && mv -f "$$f.new" "$$f"'
+
+NoNewPrivileges=true
+CapabilityBoundingSet=
+PrivateTmp=true
+PrivateDevices=true
+PrivateNetwork=true
+RestrictAddressFamilies=AF_UNIX
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+SystemCallFilter=@system-service

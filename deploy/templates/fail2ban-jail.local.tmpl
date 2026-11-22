@@ -1,0 +1,19 @@
+# {{MANAGED}}
+#
+# One ban request from bawls = a ban on every port, so an attacker caught on
+# the decoy is dropped for every site on this server. ignoreip is a second
+# safety net behind the app's never-block list; it also covers IPv6, which
+# the app-side list can't.
+#
+# Unban: sudo fail2ban-client set bawls unbanip <ip>
+
+[bawls]
+enabled   = true
+filter    = bawls
+logpath   = {{BAN_LOG}}
+backend   = polling
+maxretry  = 1
+findtime  = 1h
+bantime   = {{BAN_TIME}}
+banaction = %(banaction_allports)s
+ignoreip  = {{IGNOREIP}}

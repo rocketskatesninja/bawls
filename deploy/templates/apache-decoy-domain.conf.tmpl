@@ -1,0 +1,21 @@
+# {{MANAGED}}
+#
+# The decoy's own domain(s). Everything is proxied to the decoy over plain
+# HTTP too (a honeypot has no reason to force HTTPS), except Let's Encrypt
+# challenges, which are served from {{ACME_DIR}}.
+<VirtualHost *:80>
+    ServerName {{DECOY_SERVER_NAME}}
+{{DECOY_SERVER_ALIAS}}
+    Alias /.well-known/acme-challenge/ {{ACME_DIR}}/.well-known/acme-challenge/
+    <Directory {{ACME_DIR}}>
+        Options None
+        AllowOverride None
+        Require all granted
+    </Directory>
+    ProxyPass /.well-known/acme-challenge/ !
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:{{DECOY_PORT}}/
+    ProxyPassReverse / http://127.0.0.1:{{DECOY_PORT}}/
+    ErrorLog  ${APACHE_LOG_DIR}/bawls_decoy_error.log
+    CustomLog ${APACHE_LOG_DIR}/bawls_decoy_access.log combined
+</VirtualHost>
