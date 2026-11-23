@@ -1,0 +1,30 @@
+# {{MANAGED}}
+#
+# Sensor ingest: plain HTTP on localhost only, so the decoy and the UFW sensor
+# can POST /api/ingest (token-authenticated). Not reachable off the box.
+server {
+    listen 127.0.0.1:{{INGEST_PORT}};
+    server_name bawls-ingest;
+    server_tokens off;
+
+    allow 127.0.0.1;
+    deny all;
+
+    root {{INSTALL_DIR}}/public;
+    index index.php;
+
+    location / {
+        try_files $uri /index.php?$query_string;
+    }
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:{{PHP_FPM_SOCK}};
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+    location ~ \.php$ { return 404; }
+    location ~ /\. { deny all; }
+
+    access_log /var/log/nginx/bawls_ingest_access.log;
+    error_log  /var/log/nginx/bawls_ingest_error.log;
+}

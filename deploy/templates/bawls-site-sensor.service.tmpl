@@ -1,0 +1,62 @@
+# {{MANAGED}}
+[Unit]
+Description=Bawls site log sensor — sends exploit attempts on your real sites to the ingest API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# A throwaway system user in adm, the group that reads web server logs.
+DynamicUser=yes
+SupplementaryGroups=adm
+EnvironmentFile=/etc/bawls/site-sensor.env
+WorkingDirectory={{INSTALL_DIR}}/sensors
+ExecStart={{PYTHON}} {{INSTALL_DIR}}/sensors/site_log_sensor.py
+Restart=always
+RestartSec=10
+StateDirectory=bawls-sites
+MemoryMax=64M
+TasksMax=16
+
+# It reads other sites' traffic, so it sees as little as it can: under
+# {{INSTALL_PARENT}} only its own code (no site's .env, no bawls database),
+# and under /var/log only the directories holding the logs it watches.
+# (Directories, not files, so a rotated log is still in reach.)
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+TemporaryFileSystem={{INSTALL_PARENT}}:ro
+BindReadOnlyPaths={{INSTALL_DIR}}/sensors
+TemporaryFileSystem=/var/log:ro
+{{SITE_LOG_BINDS}}
+UMask=0077
+
+# Network: only the ingest vhost on 127.0.0.1.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+[remote "origin"]
+	url = git@git.bawls.example:bawls/website.git
+[branch "main"]
+	remote = origin

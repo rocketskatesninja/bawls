@@ -1,0 +1,16 @@
+APP_NAME=BawlsInc
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:Um9sbEl0Um9sbEl0Um9sbEl0Um9sbEl0Um9sbEl0MDA9
+APP_URL=https://bawls.example
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=bawls_prod
+DB_USERNAME=bawls_app
+DB_PASSWORD=R0undTh1ngs!2021
+
+MAIL_HOST=127.0.0.1
+MAIL_USERNAME=null
+MAIL_PASSWORD=null

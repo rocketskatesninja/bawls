@@ -1,0 +1,17 @@
+
+# HTTPS for the decoy domain(s), added once Let's Encrypt has issued the
+# certificate. certbot's timer renews it and reloads Apache.
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName {{DECOY_SERVER_NAME}}
+{{DECOY_SERVER_ALIAS}}
+    SSLEngine on
+    SSLCertificateFile    {{DECOY_CERT}}
+    SSLCertificateKeyFile {{DECOY_KEY}}
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:{{DECOY_PORT}}/
+    ProxyPassReverse / http://127.0.0.1:{{DECOY_PORT}}/
+    ErrorLog  ${APACHE_LOG_DIR}/bawls_decoy_error.log
+    CustomLog ${APACHE_LOG_DIR}/bawls_decoy_access.log combined
+</VirtualHost>
+</IfModule>

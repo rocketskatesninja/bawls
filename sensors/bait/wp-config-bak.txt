@@ -1,0 +1,9 @@
+<?php
+/* Bawls Inc. WordPress config — BACKUP */
+define( 'DB_NAME', 'bawls_wp' );
+define( 'DB_USER', 'wpadmin' );
+define( 'DB_PASSWORD', 'R0lling!Ball2019' );
+define( 'DB_HOST', 'localhost' );
+define( 'AUTH_KEY', 'put your unique phrase here' );
+$table_prefix = 'wp_';
+define( 'WP_DEBUG', false );

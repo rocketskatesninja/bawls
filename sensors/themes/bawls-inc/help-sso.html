@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Single sign-on (SAML & OIDC) · Bawls Inc.</title>
+<meta name="description" content="Let your team sign in with the identity provider they already use. Included with Professional and Enterprise.">
+<meta property="og:title" content="Single sign-on (SAML & OIDC) · Bawls Inc.">
+<meta property="og:description" content="Let your team sign in with the identity provider they already use. Included with Professional and Enterprise.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bawls Inc.">
+<link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="/assets/site.css?v=fb6edd318b">
+
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/"><svg class="logo-mark" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="var(--brand)"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--gold)" stroke-width="2"/><ellipse cx="12" cy="11" rx="4.5" ry="3" fill="rgba(255,255,255,.35)"/></svg><span>BAWLS<b>INC.</b></span></a>
+    <button class="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav class="links"><a href="/products">Products</a><a href="/solutions">Solutions</a><a href="/pricing">Pricing</a><a href="/about">Company</a><a href="/support">Support</a></nav>
+    <div class="nav-cta"><a class="btn ghost sm" href="/portal">Sign in</a><a class="btn sm" href="/contact">Request a demo</a></div>
+  </div>
+</header>
+<main id="main">
+<section class="hero slim"><div class="wrap">
+  <p class="crumbs"><a href="/support">Help Center</a> &rsaquo; Single sign-on</p>
+  <h1>Single sign-on (SAML &amp; OIDC)</h1><p class="lede">Let your team sign in with the identity provider they already use. Included with Professional and&nbsp;Enterprise.</p>
+</div></section>
+<section class="sec"><div class="wrap help-layout">
+<article class="prose">
+<p class="updated">Updated Nov 3, 2026 &middot; 1 min read</p>
+<h2 id="supported">Supported providers</h2>
+<p>Any SAML 2.0 or OpenID Connect provider works. We have step-by-step guides for Okta, Microsoft Entra ID, Google Workspace, OneLogin, JumpCloud and the Sphere&nbsp;Identity&nbsp;Cloud.</p>
+<h2 id="saml">Set up SAML</h2>
+<ol>
+<li>In BallOps&trade;, open <em>Admin &rsaquo; Security &rsaquo; Single sign-on</em> and choose&nbsp;<strong>SAML&nbsp;2.0</strong>.</li>
+<li>Copy the <strong>Entity ID</strong> and <strong>ACS URL</strong> shown there into a new app in your&nbsp;identity&nbsp;provider.</li>
+<li>Send the email address as the NameID, in email format.</li>
+<li>Paste your provider&rsquo;s metadata URL into BallOps&trade; and choose <strong>Test connection</strong>.</li>
+<li>When the test passes, turn on <strong>Require SSO</strong>. Keep one administrator on password sign-in as a&nbsp;break-glass&nbsp;account.</li>
+</ol>
+<h2 id="oidc">Set up OpenID Connect</h2>
+<p>Choose <strong>OpenID Connect</strong> instead, add the redirect URI shown to your provider, then paste the client ID, client secret and issuer URL into BallOps&trade;. It needs the scopes <code>openid&nbsp;email&nbsp;profile</code>.</p>
+<h2 id="scim">Provision users with SCIM</h2>
+<p>Professional and Enterprise can create and remove people automatically with&nbsp;SCIM&nbsp;2.0.</p>
+<p>Generate a SCIM token under <em>Admin &rsaquo; Security</em>. It is shown once, so store it in your identity provider&nbsp;straight&nbsp;away.</p>
+<h2 id="errors">Common errors</h2>
+<ul>
+<li><strong>&ldquo;User not assigned&rdquo;</strong>: add the person to the BallOps&trade; app in your&nbsp;identity&nbsp;provider.</li>
+<li><strong>&ldquo;Invalid audience&rdquo;</strong>: the Entity ID in your provider doesn&rsquo;t match the one in BallOps&trade;. Copy it again; it&nbsp;is&nbsp;case-sensitive.</li>
+<li><strong>Signed in, then signed straight out</strong>: your provider&rsquo;s clock is more than five&nbsp;minutes&nbsp;off.</li>
+</ul>
+<form class="helpful" method="post" action="/support/sso" data-demo><span>Was this article helpful?</span><button class="btn ghost sm" type="submit" name="helpful" value="yes">Yes</button><button class="btn ghost sm" type="submit" name="helpful" value="no">No</button><p class="form-msg ok" role="status" hidden>Thanks for the feedback. It has been rolled to the&nbsp;right&nbsp;team.</p></form>
+</article>
+<aside class="help-side">
+<div class="card toc"><h4>In this article</h4><a href="#supported">Supported providers</a><a href="#saml">Set up SAML</a><a href="#oidc">Set up OpenID Connect</a><a href="#scim">Provision users with SCIM</a><a href="#errors">Common errors</a></div>
+<div class="card"><h4>Related articles</h4><ul class="arts"><li><a href="/support/sign-in">Trouble signing in</a></li><li><a href="/support/two-step">Two-step verification</a></li><li><a href="/support/getting-started">Getting started with The Ball&trade;</a></li></ul></div>
+<div class="card"><h4>Still stuck?</h4><p>Sphere specialists answer within one rolling day, Monday to Friday, 9&ndash;5&nbsp;Pacific.</p><a class="btn sm" href="/contact">Contact support</a></div>
+</aside>
+</div></section>
+</main>
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="brand light" href="/"><svg class="logo-mark" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="var(--brand)"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--gold)" stroke-width="2"/><ellipse cx="12" cy="11" rx="4.5" ry="3" fill="rgba(255,255,255,.35)"/></svg><span>BAWLS<b>INC.</b></span></a>
+      <p>Global leaders in spherical solutions since 1997. Still rolling.</p>
+    </div>
+    <div class="foot-cols">
+      <div><h4>Products</h4><a href="/products/ball">The Ball&trade;</a><a href="/products/ball-pro">The Ball&trade; Pro</a><a href="/products/ball-lite">The Ball&trade; Lite</a><a href="/pricing">Pricing</a></div>
+      <div><h4>Solutions</h4><a href="/solutions">By industry</a><a href="/solutions">Enterprise</a><a href="/solutions">Government</a><a href="/status">System status</a></div>
+      <div><h4>Company</h4><a href="/about">About</a><a href="/team">Leadership</a><a href="/careers">Careers</a><a href="/press">Press</a><a href="/investors">Investors</a></div>
+      <div><h4>Resources</h4><a href="/support">Support</a><a href="/contact">Contact</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    </div>
+  </div>
+  <div class="wrap foot-bar">
+    <span>&copy; <span id="yr">2026</span> Bawls Inc. All rights reserved. &middot; 1 Rolling Plaza, Sphereville, OR</span>
+    <span class="foot-legal"><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/status">Status</a></span>
+  </div>
+</footer>
+<script src="/assets/site.js?v=eb7feb9f12" defer></script>
+</body>
+</html>
