@@ -1,0 +1,26 @@
+# {{MANAGED}}
+[Unit]
+Description=Bawls UFW sensor — ships firewall block events to the ingest API
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# A throwaway system user that can read the kernel journal and nothing more.
+DynamicUser=yes
+SupplementaryGroups=systemd-journal
+EnvironmentFile=/etc/bawls/sensor.env
+WorkingDirectory={{INSTALL_DIR}}/sensors
+ExecStart={{PYTHON}} {{INSTALL_DIR}}/sensors/ufw_sensor.py
+Restart=always
+RestartSec=10
+StateDirectory=bawls-ufw
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target
