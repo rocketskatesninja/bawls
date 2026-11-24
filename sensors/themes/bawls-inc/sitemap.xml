@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{{origin}}/</loc></url>
+  <url><loc>{{origin}}/products</loc></url>
+  <url><loc>{{origin}}/products/ball</loc></url>
+  <url><loc>{{origin}}/products/ball-pro</loc></url>
+  <url><loc>{{origin}}/products/ball-lite</loc></url>
+  <url><loc>{{origin}}/solutions</loc></url>
+  <url><loc>{{origin}}/pricing</loc></url>
+  <url><loc>{{origin}}/about</loc></url>
+  <url><loc>{{origin}}/team</loc></url>
+  <url><loc>{{origin}}/careers</loc></url>
+  <url><loc>{{origin}}/press</loc></url>
+  <url><loc>{{origin}}/press/ball-pro-launch</loc></url>
+  <url><loc>{{origin}}/press/series-b</loc></url>
+  <url><loc>{{origin}}/press/roundness-report</loc></url>
+  <url><loc>{{origin}}/investors</loc></url>
+  <url><loc>{{origin}}/contact</loc></url>
+  <url><loc>{{origin}}/support</loc></url>
+  <url><loc>{{origin}}/support/sign-in</loc></url>
+  <url><loc>{{origin}}/support/reset-password</loc></url>
+  <url><loc>{{origin}}/support/two-step</loc></url>
+  <url><loc>{{origin}}/support/sso</loc></url>
+  <url><loc>{{origin}}/support/getting-started</loc></url>
+  <url><loc>{{origin}}/support/billing</loc></url>
+  <url><loc>{{origin}}/support/troubleshooting</loc></url>
+  <url><loc>{{origin}}/status</loc></url>
+  <url><loc>{{origin}}/privacy</loc></url>
+  <url><loc>{{origin}}/terms</loc></url>
+</urlset>

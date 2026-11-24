@@ -1,0 +1,23 @@
+; {{MANAGED}}
+;
+; bawls runs in a PHP-FPM pool of its own, as its own user. The other sites on
+; this server share the web server's user ({{WEB_USER}}); in that pool, any one
+; of them being compromised would expose bawls' database, keys and ban list.
+; The web server reaches this pool through the socket and nothing else.
+
+[bawls]
+user = {{APP_USER}}
+group = {{APP_GROUP}}
+
+listen = {{PHP_FPM_SOCK}}
+listen.owner = {{WEB_USER}}
+listen.group = {{WEB_GROUP}}
+listen.mode = 0660
+
+; One person's console plus three sensors posting every few seconds.
+pm = dynamic
+pm.max_children = 8
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+pm.max_requests = 500

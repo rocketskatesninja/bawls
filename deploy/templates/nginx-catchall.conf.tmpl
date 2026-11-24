@@ -1,0 +1,33 @@
+# {{MANAGED}}
+#
+# The catch-all: requests that match no named site (the bare IP, a junk Host
+# header, a scanner that never asked for a hostname) get the decoy. They're
+# recorded, and banned on an exploit attempt, before they find a real site by
+# name. Named sites are unaffected.
+#
+# HTTPS uses a generic self-signed certificate (CN=localhost), so a bare-IP
+# TLS handshake reveals nothing about this server's other names.
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    server_tokens off;
+
+    ssl_certificate     {{DEFAULT_CERT}};
+    ssl_certificate_key {{DEFAULT_KEY}};
+
+    location / {
+        proxy_pass http://127.0.0.1:{{DECOY_PORT}};
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # The decoy records every request itself, masked and with its own retention,
+    # so the web server keeps no second copy of visitors' requests.
+    access_log off;
+    error_log  /var/log/nginx/bawls_default_error.log;
+}

@@ -1,0 +1,95 @@
+# bawls install config. Copy it, edit it, then run:
+#
+#   sudo ./install.sh --config bawls.conf
+#
+# The installer keeps its own copy at /etc/bawls/bawls.conf (root, 600). To
+# change something later, edit that file and run `sudo ./install.sh` again:
+# it only touches what changed.
+#
+# Leave a value empty to take the default shown.
+
+# Where the app lives. Its parent directory is hidden from the decoy, so keep
+# it next to your other sites (default /var/www/bawls).
+INSTALL_DIR=/var/www/bawls
+
+# apache or nginx. auto = whichever this server already runs (Apache when
+# there's neither yet).
+WEB_SERVER=auto
+
+# The console's private hostname. It isn't in DNS: add the hosts-file line the
+# installer prints to each computer you'll use the console from.
+CONSOLE_HOST=bawls.admin
+
+# IPs allowed to reach the console, space-separated. Empty = the IP you're
+# connected over SSH from, detected when you run the installer.
+CONSOLE_ALLOW=
+
+# The console login. A random password is generated and saved, with the
+# secret sign-in path, to /root/bawls-console.txt (default admin@CONSOLE_HOST).
+ADMIN_EMAIL=
+
+# Where the decoy answers:
+#   catchall  anything that isn't one of your named sites: the bare IP, junk
+#             Host headers, scanners. Recommended. The installer won't take
+#             over a default site you've customised unless
+#             REPLACE_DEFAULT_VHOST=yes.
+#   domain    only the domain(s) in DECOY_DOMAINS.
+#   both      both of the above.
+DECOY_MODE=catchall
+DECOY_DOMAINS=
+REPLACE_DEFAULT_VHOST=no
+
+# yes = a free Let's Encrypt certificate for DECOY_DOMAINS, which must already
+# point at this server; certbot renews it. no = the decoy domains get plain
+# HTTP only. The email is optional (account notices only).
+LETSENCRYPT=no
+LETSENCRYPT_EMAIL=
+
+# The decoy website. A theme name from sensors/themes/ or an absolute path to
+# your own theme folder (keep it outside INSTALL_DIR so upgrades leave it be).
+THEME=bawls-inc
+
+# Ban an attacker on every port once they send a real exploit (needs fail2ban,
+# which the installer adds). BAN_TIME uses fail2ban's units: 1h, 7d, ...
+BAN=yes
+BAN_TIME=7d
+
+# Never ban these, space-separated (IPv4/CIDR). This server's own addresses and
+# CONSOLE_ALLOW are always added, so you can't lock yourself out.
+NEVER_BLOCK=
+
+# Also record UFW firewall blocks: auto = only if UFW is active.
+UFW_SENSOR=auto
+
+# Your real websites on this server: bawls can read their access logs and treat
+# an exploit attempt there (SQL injection, command injection, path traversal,
+# a known-exploit probe) exactly like one on the decoy: an alert, and a ban on
+# every port. Only those requests are sent to bawls; your visitors' ordinary
+# traffic is read and dropped, never stored. Space-separated name=path pairs,
+# logs under /var/log, e.g.
+#   SITE_LOGS="example.com=/var/log/apache2/example.com_access.log example.com=/var/log/apache2/example.com_ssl_access.log"
+# (one site's http and https logs can share its name)
+# Name each site by its domain: that is how a request that reached it by way
+# of another site's page is told apart, and recorded without banning.
+# Empty = off. The installer suggests your sites' logs when it's empty.
+SITE_LOGS=
+# "no" records and alerts on them without banning: a trial run to see what
+# they would ban before they do. The decoy always bans.
+SITE_BAN=yes
+
+# Optional. A free MaxMind key adds country/city/ASN to each attacker. A
+# webhook (ntfy, Slack, Discord, ...) gets new high-severity alerts.
+MAXMIND_LICENSE_KEY=
+ALERT_WEBHOOK=
+
+# Install missing packages (Apache, PHP-FPM, fail2ban, ...) with apt. Nothing
+# already installed is upgraded. With "no" the installer lists what's missing.
+INSTALL_PACKAGES=yes
+
+# Which PHP to run bawls on (e.g. 8.5) when this server has several. Empty =
+# the default php command.
+PHP_VERSION=
+
+# Local ports: the decoy and the sensors' ingest API (both on 127.0.0.1 only).
+DECOY_PORT=8088
+INGEST_PORT=9119

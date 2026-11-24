@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Fingerprint Test</title>
+<style>
+  :root{
+    --void:#070b09; --panel:#0d1411; --panel-lit:#131c18; --grid:#1c2b24; --edge:#24382f;
+    --phosphor:#39ff8b; --amber:#ff9500; --alarm:#ff2d55; --signal:#4dd8ff;
+    --ink:#c9dbd2; --ink-dim:#6e857a; --ink-faint:#435049;
+    --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--void);color:var(--ink);font-family:var(--mono);line-height:1.5}
+  .wrap{max-width:900px;margin:0 auto;padding-block:24px;
+        padding-left:max(16px,env(safe-area-inset-left,0px));
+        padding-right:max(16px,env(safe-area-inset-right,0px))}
+  h1{font-size:20px;letter-spacing:.25em;color:var(--phosphor);text-shadow:0 0 6px currentColor;margin:0 0 2px}
+  .sub{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--ink-faint);margin-bottom:20px}
+  .warn{border:1px solid var(--amber);background:rgba(255,149,0,.06);padding:16px 18px;margin-bottom:20px}
+  .warn h2{margin:0 0 8px;color:var(--amber);font-size:13px;text-transform:uppercase;letter-spacing:.15em}
+  .warn p{margin:0 0 8px;font-size:13px}
+  .warn .fine{color:var(--ink-dim);font-size:12px}
+  button{font-family:var(--mono);cursor:pointer;border:1px solid var(--phosphor);background:rgba(57,255,139,.08);
+         color:var(--phosphor);padding:10px 22px;font-size:13px;text-transform:uppercase;letter-spacing:.15em}
+  button:hover{background:rgba(57,255,139,.16)}
+  button.ghost{border-color:var(--edge);color:var(--ink-dim)}
+  .idbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;border:1px solid var(--grid);
+         background:var(--panel);padding:14px 18px;margin:18px 0}
+  .idbar .hash{font-size:22px;color:var(--phosphor);text-shadow:0 0 6px currentColor;word-break:break-all}
+  .idbar .ent{font-size:12px;color:var(--amber)}
+  .flags{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+  .flag{font-size:11px;border:1px solid var(--edge);padding:3px 8px;color:var(--ink-dim)}
+  .flag.good{border-color:var(--phosphor);color:var(--phosphor)}
+  .flag.bad{border-color:var(--alarm);color:var(--alarm)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:8px}
+  .card{border:1px solid var(--grid);background:var(--panel);min-width:0}
+  .card h3{margin:0;padding:8px 12px;border-bottom:1px solid var(--grid);font-size:11px;
+           text-transform:uppercase;letter-spacing:.15em;color:var(--ink-dim)}
+  .card dl{margin:0;padding:8px 12px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px}
+  .card dt{color:var(--ink-faint);white-space:nowrap}
+  .card dd{margin:0;text-align:right;word-break:break-word;font-variant-numeric:tabular-nums}
+  .note{color:var(--ink-faint);font-size:11px;margin-top:22px}
+  #status{font-size:12px;color:var(--signal);margin-top:10px;min-height:1.2em}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>BROWSER FINGERPRINT TEST</h1>
+  <div class="sub">bawls · see what your browser reveals</div>
+
+  <div class="warn">
+    <h2>⚠ Read this before you run it</h2>
+    <p>This page actively <strong>fingerprints your browser</strong>. When you press the button it probes
+      your canvas, WebGL, audio stack, installed fonts, screen, hardware, network and more to build an
+      identifier that can recognise your browser across sites — then it <strong>shows you the result and
+      records it for this site's operator</strong>.</p>
+    <p>It runs nothing until you choose to. If you don't want your fingerprint computed or recorded,
+      just close this page.</p>
+    <p class="fine">Note: your ad/tracker blocker almost certainly won't stop this. Blockers work from
+      lists of known third-party tracker domains; this script is first-party and inline, so it isn't on
+      any list. That's the whole point of the test — it shows what first-party fingerprinting can see
+      regardless of your blocker.</p>
+  </div>
+
+  <div id="intro">
+    <button id="run">Run the fingerprint test</button>
+  </div>
+
+  <div id="results" hidden>
+    <div class="idbar">
+      <div>
+        <div class="sub" style="margin:0">Your fingerprint</div>
+        <div class="hash" id="fp">—</div>
+      </div>
+      <div class="ent" id="entropy"></div>
+    </div>
+    <div class="flags" id="flags"></div>
+    <div class="grid" id="cards"></div>
+    <div id="status"></div>
+    <p class="note">Everything above was read from your own browser. It was recorded once for the operator
+      of this site; re-running does not send it again unless you press the button.
+      <button class="ghost" id="rerun" style="padding:4px 10px;font-size:11px">Re-run (local only)</button>
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  // Small non-crypto hash (cyrb53): works over plain HTTP where crypto.subtle is
+  // unavailable, and is plenty for a fingerprint identifier.
+  function cyrb53(str, seed) {
+    seed = seed || 0;
+    let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, "0");
+  }
+  const safe = (fn) => { try { return fn(); } catch (e) { return null; } };
+
+  function canvasFp() {
+    return safe(() => {
+      const c = document.createElement("canvas"); c.width = 280; c.height = 60;
+      const x = c.getContext("2d");
+      x.textBaseline = "top"; x.font = "16px 'Arial'";
+      x.fillStyle = "#f60"; x.fillRect(2, 2, 110, 22);
+      x.fillStyle = "#069"; x.fillText("Bawls fingerprint \u{1F600} ☃", 4, 4);
+      x.fillStyle = "rgba(102,0,153,0.7)"; x.fillText("Bawls fingerprint \u{1F600} ☃", 6, 18);
+      x.strokeStyle = "rgba(0,200,120,0.5)"; x.beginPath(); x.arc(200, 30, 20, 0, Math.PI * 2); x.stroke();
+      return c.toDataURL();
+    });
+  }
+
+  function webgl() {
+    return safe(() => {
+      const c = document.createElement("canvas");
+      const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (!gl) return null;
+      const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+      const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+      const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      const params = [gl.getParameter(gl.MAX_TEXTURE_SIZE), gl.getParameter(gl.MAX_VIEWPORT_DIMS),
+        gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE),
+        (gl.getSupportedExtensions() || []).join(",")].join("|");
+      return { vendor: String(vendor), renderer: String(renderer), params };
+    });
+  }
+
+  function audioFp() {
+    return new Promise((resolve) => {
+      try {
+        const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!Ctx) return resolve(null);
+        const ctx = new Ctx(1, 5000, 44100);
+        const osc = ctx.createOscillator(); osc.type = "triangle"; osc.frequency.value = 10000;
+        const comp = ctx.createDynamicsCompressor();
+        osc.connect(comp); comp.connect(ctx.destination); osc.start(0);
+        ctx.oncomplete = (e) => {
+          const data = e.renderedBuffer.getChannelData(0);
+          let sum = 0; for (let i = 0; i < data.length; i++) sum += Math.abs(data[i]);
+          resolve(sum.toString());
+        };
+        ctx.startRendering();
+        setTimeout(() => resolve(null), 1500);
+      } catch (e) { resolve(null); }
+    });
+  }
+
+  function fonts() {
+    return safe(() => {
+      const base = ["monospace", "sans-serif", "serif"];
+      const test = ["Arial", "Courier New", "Georgia", "Times New Roman", "Verdana", "Helvetica",
+        "Comic Sans MS", "Impact", "Tahoma", "Trebuchet MS", "Ubuntu", "Cantarell", "DejaVu Sans",
+        "Liberation Sans", "Roboto", "Segoe UI", "Menlo", "Monaco", "Consolas", "Noto Sans"];
+      const span = document.createElement("span");
+      span.style.cssText = "position:absolute;left:-9999px;font-size:72px";
+      span.textContent = "mmmmmmmmmmlli";
+      document.body.appendChild(span);
+      const baseline = {};
+      base.forEach((b) => { span.style.fontFamily = b; baseline[b] = [span.offsetWidth, span.offsetHeight]; });
+      const found = test.filter((f) => base.some((b) => {
+        span.style.fontFamily = "'" + f + "'," + b;
+        return span.offsetWidth !== baseline[b][0] || span.offsetHeight !== baseline[b][1];
+      }));
+      document.body.removeChild(span);
+      return found;
+    }) || [];
+  }
+
+  function webrtc() {
+    return new Promise((resolve) => {
+      const ips = new Set();
+      try {
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel("x");
+        pc.onicecandidate = (e) => {
+          if (!e.candidate) { pc.close(); return resolve([...ips]); }
+          const m = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{0,4}){2,})/i.exec(e.candidate.candidate);
+          if (m) ips.add(m[1]);
+        };
+        pc.createOffer().then((o) => pc.setLocalDescription(o)).catch(() => resolve([]));
+        setTimeout(() => { try { pc.close(); } catch (e) {} resolve([...ips]); }, 1800);
+      } catch (e) { resolve([]); }
+    });
+  }
+
+  async function collect() {
+    const n = navigator, s = screen;
+    const tz = safe(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+    const canvas = canvasFp();
+    const canvas2 = canvasFp();
+    const gl = webgl();
+    const [audio, rtcIps] = await Promise.all([audioFp(), webrtc()]);
+    const fontList = fonts();
+    const uaData = n.userAgentData ? safe(() => ({ brands: n.userAgentData.brands, mobile: n.userAgentData.mobile, platform: n.userAgentData.platform })) : null;
+    const conn = n.connection ? safe(() => ({ effectiveType: n.connection.effectiveType, rtt: n.connection.rtt, downlink: n.connection.downlink, saveData: n.connection.saveData })) : null;
+    const devices = await (n.mediaDevices && n.mediaDevices.enumerateDevices ? n.mediaDevices.enumerateDevices().then((d) => d.map((x) => x.kind)).catch(() => []) : Promise.resolve([]));
+
+    const data = {
+      ua: n.userAgent, platform: n.platform, vendor: n.vendor,
+      languages: (n.languages || []).join(","), language: n.language,
+      cores: n.hardwareConcurrency, memory: n.deviceMemory, touch: n.maxTouchPoints,
+      cookies: n.cookieEnabled, dnt: n.doNotTrack, gpc: n.globalPrivacyControl,
+      webdriver: n.webdriver, pdf: n.pdfViewerEnabled,
+      uaData, timezone: tz, tzOffset: new Date().getTimezoneOffset(),
+      screen: [s.width, s.height, s.availWidth, s.availHeight, s.colorDepth, window.devicePixelRatio].join("x"),
+      orientation: safe(() => screen.orientation.type),
+      canvas, canvasRandomized: canvas && canvas2 && canvas !== canvas2,
+      webgl: gl, audio, fonts: fontList, fontCount: fontList.length,
+      webrtcIps: rtcIps, connection: conn, devices,
+      plugins: safe(() => [...n.plugins].map((p) => p.name)) || [],
+      storage: { local: safe(() => !!window.localStorage), idb: safe(() => !!window.indexedDB) },
+      mathTan: safe(() => Math.tan(-1e300)), perfRes: safe(() => { const a = performance.now(); let b = a; while (b === a) b = performance.now(); return b - a; }),
+    };
+
+    // Stable combined fingerprint: the signals that don't change between runs.
+    const stable = [data.ua, data.languages, data.timezone, data.screen, data.cores, data.memory,
+      canvas, gl && gl.renderer, gl && gl.params, audio, fontList.join(","), data.platform].join("~~");
+    data.fingerprint = cyrb53(stable);
+    return data;
+  }
+
+  function flags(d) {
+    const f = [];
+    f.push(d.canvasRandomized ? ["canvas randomized (anti-FP)", "good"] : ["canvas stable (identifying)", "bad"]);
+    const masked = !d.webgl || /(swiftshader|llvmpipe|angle \(google)/i.test(d.webgl.renderer || "") || !d.webgl.renderer;
+    f.push(masked ? ["GPU masked/software (anti-FP)", "good"] : ["real GPU exposed", "bad"]);
+    f.push(d.webdriver ? ["navigator.webdriver = automation", "bad"] : ["not flagged as automation", ""]);
+    f.push((d.dnt === "1" || d.gpc) ? ["DNT/GPC signalled", "good"] : ["no DNT/GPC", ""]);
+    if (d.webrtcIps && d.webrtcIps.some((ip) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(ip)))
+      f.push(["WebRTC leaks a local IP", "bad"]);
+    else f.push(["no WebRTC local-IP leak", "good"]);
+    const rfp = d.timezone === "UTC" || d.cores <= 2 || !d.uaData;
+    f.push(rfp ? ["looks hardened (RFP/Tor-like)", "good"] : ["standard, highly identifiable", "bad"]);
+    return f;
+  }
+
+  function render(d) {
+    document.getElementById("fp").textContent = d.fingerprint;
+    const bits = 8 + d.fontCount + (d.webgl ? 10 : 0) + (d.canvasRandomized ? 0 : 12) + (d.uaData ? 4 : 0) + (d.connection ? 2 : 0);
+    document.getElementById("entropy").textContent = "≈ " + bits + " distinguishing signals · " +
+      (bits > 28 ? "very identifiable" : bits > 18 ? "identifiable" : "relatively anonymous");
+    const fl = document.getElementById("flags"); fl.innerHTML = "";
+    flags(d).forEach(([t, cls]) => { const e = document.createElement("span"); e.className = "flag " + cls; e.textContent = t; fl.appendChild(e); });
+
+    const cards = {
+      "User agent": { "UA": d.ua, "Platform": d.platform, "Vendor": d.vendor || "—", "UA-CH": d.uaData ? "present" : "none" },
+      "Locale & time": { "Languages": d.languages, "Timezone": d.timezone || "—", "Offset": d.tzOffset },
+      "Display": { "Screen": d.screen, "Orientation": d.orientation || "—" },
+      "Hardware": { "CPU cores": d.cores ?? "—", "Memory (GB)": d.memory ?? "—", "Touch pts": d.touch ?? "—" },
+      "Canvas": { "Hash": cyrb53(d.canvas || ""), "Randomized": d.canvasRandomized ? "yes" : "no" },
+      "WebGL": d.webgl ? { "Vendor": d.webgl.vendor, "Renderer": d.webgl.renderer } : { "WebGL": "unavailable" },
+      "Audio": { "Hash": d.audio ? cyrb53(d.audio) : "blocked" },
+      "Fonts": { "Detected": d.fontCount + " of 20", "List": (d.fonts.join(", ") || "—") },
+      "Network (WebRTC)": { "IPs seen": (d.webrtcIps.join(", ") || "none/blocked"), "Conn": d.connection ? d.connection.effectiveType : "—" },
+      "Privacy signals": { "DNT": d.dnt || "unset", "GPC": d.gpc ? "on" : "unset", "Cookies": d.cookies ? "on" : "off", "Webdriver": d.webdriver ? "yes" : "no" },
+      "Plugins": { "Count": d.plugins.length, "Names": d.plugins.join(", ") || "—" },
+      "Storage": { "localStorage": d.storage.local ? "yes" : "no", "IndexedDB": d.storage.idb ? "yes" : "no" },
+    };
+    const wrap = document.getElementById("cards"); wrap.innerHTML = "";
+    Object.entries(cards).forEach(([title, rows]) => {
+      const card = document.createElement("div"); card.className = "card";
+      const h = document.createElement("h3"); h.textContent = title; card.appendChild(h);
+      const dl = document.createElement("dl");
+      Object.entries(rows).forEach(([k, v]) => {
+        const dt = document.createElement("dt"); dt.textContent = k;
+        const dd = document.createElement("dd"); dd.textContent = String(v);
+        dl.appendChild(dt); dl.appendChild(dd);
+      });
+      card.appendChild(dl); wrap.appendChild(card);
+    });
+  }
+
+  function submit(d) {
+    const status = document.getElementById("status");
+    try {
+      fetch("/browser-check", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fingerprint: d.fingerprint, signals: d }),
+        keepalive: true,
+      }).then(() => { status.textContent = "Result recorded for the operator (as disclosed above)."; })
+        .catch(() => { status.textContent = "Shown to you only — the result could not be recorded."; });
+    } catch (e) { status.textContent = "Shown to you only — the result could not be recorded."; }
+  }
+
+  async function run(doSubmit) {
+    const btn = document.getElementById("run"); if (btn) btn.disabled = true;
+    const d = await collect();
+    document.getElementById("intro").hidden = true;
+    document.getElementById("results").hidden = false;
+    render(d);
+    if (doSubmit) submit(d);
+  }
+
+  document.getElementById("run").addEventListener("click", () => run(true));
+  document.getElementById("rerun").addEventListener("click", () => run(false));
+})();
+</script>
+</body>
+</html>
