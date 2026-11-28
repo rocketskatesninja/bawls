@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+/*
+ | Bawls runs on a wall display as much as a laptop: high contrast,
+ | phosphor-on-black, monospace for anything that is data. The palette is
+ | deliberately narrow: the accent (green unless changed in Settings; it is
+ | painted onto <html> by app.blade.php) means normal, amber means
+ | suspicious, red means act now, and nothing else competes for attention.
+ |
+ | Sizes are in rem throughout, so the console's text-size setting (the root
+ | font size) scales everything. Every animation below is switched off under
+ | prefers-reduced-motion at the end of this file.
+ */
+@theme {
+    --color-void: #070b09;
+    --color-panel: #0d1411;
+    --color-panel-lit: #131c18;
+    --color-grid: #31463b;
+    --color-edge: #42594c;
+
+    --color-phosphor: #39ff8b;
+    --color-phosphor-dim: #1f8f4e;
+    --color-amber: #ff9500;
+    --color-alarm: #ff2d55;
+    --color-signal: #4dd8ff;
+
+    --color-ink: #dbeae2;
+    --color-ink-dim: #9bb1a5;
+    --color-ink-faint: #7f958a;
+
+    --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html, body {
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+}
+
+/* Faint scanlines + vignette. Purely atmospheric; pointer-events none so it
+   never eats a click. */
+.crt::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 0, 0, 0.22) 3px,
+        rgba(0, 0, 0, 0.22) 4px
+    );
+}
+
+.crt::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 51;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);
+}
+
+.glow { text-shadow: 0 0 6px currentColor; }
+.glow-box { box-shadow: 0 0 0 1px var(--color-edge), 0 0 18px -6px var(--color-phosphor-dim); }
+
+/* Thin, dark, always-visible scrollbars — a monitoring wall should never
+   hide that a list continues. */
+* { scrollbar-width: thin; scrollbar-color: var(--color-edge) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--color-edge); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* A slow blink: the live dot, a NEW alert's tag. */
+@keyframes pulse-alarm {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.pulse { animation: pulse-alarm 1.4s ease-in-out infinite; }
+
+/* A stream row that arrived since the last refresh: a brief wash of the
+   accent, so new events are noticeable without moving anything. */
+@keyframes row-new {
+    from { background-color: color-mix(in srgb, var(--color-phosphor) 18%, transparent); }
+    to { background-color: transparent; }
+}
+.row-new { animation: row-new 2.5s ease-out; }
+
+/* An exploit arriving in the stream: a red wash and a glow off its edge. */
+@keyframes row-new-exploit {
+    from {
+        background-color: color-mix(in srgb, var(--color-alarm) 30%, transparent);
+        box-shadow: inset 4px 0 14px -4px var(--color-alarm);
+    }
+    to { background-color: transparent; box-shadow: none; }
+}
+.row-new-exploit { animation: row-new-exploit 3s ease-out; }
+
+/* A new alert slides into the alerts panel on a strong red flash, settling
+   into the faint red of an alert you haven't looked at yet… */
+@keyframes alert-in {
+    from { transform: translateY(-0.5rem); opacity: 0; background-color: color-mix(in srgb, var(--color-alarm) 50%, transparent); }
+    30% { transform: none; opacity: 1; background-color: color-mix(in srgb, var(--color-alarm) 40%, transparent); }
+    to { background-color: color-mix(in srgb, var(--color-alarm) 9%, transparent); }
+}
+.alert-in { animation: alert-in 2.6s ease-out; }
+/* …which it keeps, with a red edge, until you point at it. */
+.alert-unseen {
+    background-color: color-mix(in srgb, var(--color-alarm) 9%, transparent);
+    box-shadow: inset 3px 0 0 var(--color-alarm);
+}
+/* The alerts panel's border pulses red three times when one arrives. */
+@keyframes alerts-flash {
+    50% { box-shadow: 0 0 0 2px var(--color-alarm), 0 0 30px 2px color-mix(in srgb, var(--color-alarm) 55%, transparent); }
+}
+.alerts-flash { animation: alerts-flash 0.8s ease-in-out 3; }
+
+/* A ban landing while you watch: the BANNED tag stamps down. */
+@keyframes stamp {
+    from { transform: scale(2.4) rotate(-10deg); opacity: 0; }
+    60% { transform: scale(0.9) rotate(-3deg); opacity: 1; }
+    to { transform: none; }
+}
+.stamp { display: inline-block; animation: stamp 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
+
+/* A stat tile whose number just went up flares, then settles to its glow. */
+@keyframes tick-up {
+    from { text-shadow: 0 0 16px currentColor, 0 0 4px currentColor; filter: brightness(1.7); }
+    to { text-shadow: 0 0 6px currentColor; filter: none; }
+}
+.tick-up { animation: tick-up 1.2s ease-out; }
+
+/* The attack map's radar: a scan line crosses the world every 8 s (the map
+   is 144 units wide, the line's trail 14), and a place with new activity
+   pings outward once. */
+@keyframes map-sweep {
+    from { transform: translateX(0); }
+    to { transform: translateX(158px); }
+}
+.map-sweep { animation: map-sweep 8s linear infinite; }
+@keyframes map-ping {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(5); opacity: 0; }
+}
+.map-ping { transform-box: fill-box; transform-origin: center; animation: map-ping 1.6s ease-out forwards; }
+.map-place:hover .map-dot { filter: brightness(1.6); }
+.map-place[data-kind='exploit'] .map-dot { filter: drop-shadow(0 0 0.8px var(--color-alarm)); }
+
+/* The sign-in boot sequence (Overview): each line types itself out, a caret
+   blinks at the newest, then the screen lifts away. */
+@keyframes boot-type {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+}
+.boot-line { animation: boot-type 0.16s steps(24, end) both; }
+@keyframes boot-caret { 50% { opacity: 0; } }
+.boot-caret { animation: boot-caret 0.6s steps(1) infinite; }
+@keyframes boot-out { to { opacity: 0; transform: scale(1.02); } }
+.boot-out { animation: boot-out 0.3s ease-in forwards; }
+
+/* The dossier map's selected address: a pulsing pin with its place beside it. */
+.bawls-pin-selected { display: flex; align-items: center; gap: 0.5rem; pointer-events: none; }
+.bawls-pin-dot { position: relative; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--color-void); }
+.bawls-pin-dot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    animation: pin-pulse 1.8s ease-out infinite;
+}
+@keyframes pin-pulse {
+    from { transform: scale(1); opacity: 0.9; }
+    to { transform: scale(3.2); opacity: 0; }
+}
+.bawls-pin-label {
+    border: 1px solid var(--color-edge);
+    background: color-mix(in srgb, var(--color-panel) 90%, transparent);
+    padding: 0.125rem 0.4rem;
+    font-family: var(--font-mono);   /* maplibre-gl.css sets its own font on the map */
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--color-ink);
+    white-space: nowrap;
+}
+.bawls-pin-label small { display: block; font-size: 0.6875rem; color: var(--color-ink-faint); }
+
+@media (prefers-reduced-motion: reduce) {
+    .pulse, .row-new, .row-new-exploit, .alert-in, .alerts-flash, .stamp, .tick-up, .boot-line, .boot-caret, .boot-out { animation: none; }
+    .bawls-pin-dot::after { animation: none; opacity: 0; }
+    .map-sweep, .map-ping { display: none; }
+}

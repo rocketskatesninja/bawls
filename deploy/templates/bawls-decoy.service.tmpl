@@ -1,0 +1,65 @@
+# {{MANAGED}}
+[Unit]
+Description=Bawls decoy — low-interaction HTTP honeypot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bawls-decoy
+EnvironmentFile=/etc/bawls/decoy.env
+WorkingDirectory={{INSTALL_DIR}}/sensors
+ExecStart={{PYTHON}} {{INSTALL_DIR}}/sensors/decoy_sensor.py
+Restart=always
+RestartSec=10
+MemoryMax=128M
+TasksMax=64
+
+# The decoy is the one process that parses hostile internet traffic, so it is
+# confined as if it were already compromised.
+
+# Filesystem: everything under {{INSTALL_PARENT}} is replaced by an empty
+# read-only tmpfs, with only the decoy's own code (and its theme) and the
+# /browser-check flag directory mounted back in. So it can't read any other
+# site's .env, or the bawls database.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+TemporaryFileSystem={{INSTALL_PARENT}}:ro
+BindReadOnlyPaths={{INSTALL_DIR}}/sensors
+BindReadOnlyPaths=-{{INSTALL_DIR}}/storage/app/decoy
+{{THEME_BIND}}
+UMask=0077
+
+# Network: localhost only. The web server proxies to it on 127.0.0.1, and it
+# ships events to the ingest vhost on 127.0.0.1. A compromised decoy can't
+# reach the internet.
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Privileges, kernel and syscalls.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RemoveIPC=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+# {{MANAGED}}
+#
+# Keep bans in fail2ban's database for as long as the bawls jail bans
+# (BAN_TIME) plus a day, so they are restored after a fail2ban restart or a
+# reboot; fail2ban's stock setting forgets them after one day. The setting is
+# fail2ban-wide: other jails' bans are remembered this long too, never less
+# than they are banned for.
+
+[Definition]
+dbpurgeage = {{PURGE_AGE}}

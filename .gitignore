@@ -1,0 +1,49 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# Tripwire — never publish captured network data or local state.
+/database/*.sqlite
+/database/*.sqlite-shm
+/database/*.sqlite-wal
+/database/*.sqlite-journal
+/deploy/sensor.env
+*.pcap
+/storage/bawls
+
+# Python bytecode from the sensor agents
+__pycache__/
+*.py[cod]
+
+# GeoLite2 database (downloaded at runtime via bawls:geoip-update; never committed)
+/storage/geoip/
+
+# Release tarballs from deploy/build-release.sh
+/dist
+
+# A filled-in installer config (copied from bawls.conf.example) holds keys and addresses.
+/bawls.conf
